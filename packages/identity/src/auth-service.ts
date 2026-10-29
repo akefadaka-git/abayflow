@@ -115,11 +115,13 @@ export class IdentityAuthService {
     return { accepted: true, message: GENERIC_RECOVERY_RESPONSE };
   }
 
-  async redeemRecovery(rawToken: string, newCredential: string): Promise<boolean> {
+  async redeemRecovery(rawToken: string, newCredential: string, sourceIp: string): Promise<boolean> {
     if (typeof rawToken !== "string" || rawToken.length < 32 || rawToken.length > 256) return false;
     const tokenHash = hash(rawToken);
+    if (!sourceIp) return false;
     const limit = await this.limiter.consume([
-      { dimension: "token", subject: tokenHash, limit: 5, windowMs: 30 * 60 * 1000 }
+      { dimension: "token", subject: tokenHash, limit: 5, windowMs: 30 * 60 * 1000 },
+      { dimension: "source_ip", subject: "recovery-redemption:" + sourceIp, limit: 20, windowMs: HOUR }
     ]);
     if (!limit.allowed) return false;
     const encoded = await hashCredential(newCredential);
@@ -129,11 +131,13 @@ export class IdentityAuthService {
     });
   }
 
-  async verifyEmail(rawToken: string): Promise<boolean> {
+  async verifyEmail(rawToken: string, sourceIp: string): Promise<boolean> {
     if (typeof rawToken !== "string" || rawToken.length < 32 || rawToken.length > 256) return false;
     const tokenHash = hash(rawToken);
+    if (!sourceIp) return false;
     const limit = await this.limiter.consume([
-      { dimension: "token", subject: tokenHash, limit: 5, windowMs: 30 * 60 * 1000 }
+      { dimension: "token", subject: tokenHash, limit: 5, windowMs: 30 * 60 * 1000 },
+      { dimension: "source_ip", subject: "verification-redemption:" + sourceIp, limit: 20, windowMs: HOUR }
     ]);
     if (!limit.allowed) return false;
     return this.lifecycle.consumeEmailVerificationToken(tokenHash);
