@@ -66,7 +66,7 @@ export class PostgreSqlEmailOutbox {
       throw new Error("SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM must be configured");
     }
     const secure = process.env.SMTP_SECURE === "true";
-    const transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass }, connectionTimeout: 5000, greetingTimeout: 5000, socketTimeout: 10000 });
+    const transporter = nodemailer.createTransport({ host, port, secure, requireTLS: !secure, auth: { user, pass }, connectionTimeout: 5000, greetingTimeout: 5000, socketTimeout: 10000 });
     const client = await this.pool.connect();
     let sent = 0, failed = 0;
     try {
