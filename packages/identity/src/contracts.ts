@@ -50,6 +50,8 @@ export interface IdentityRepository {
   findPrincipalById(userId: string): Promise<AuthenticatedPrincipal | null>;
   findActiveMembership(userId: string, tenantId: string): Promise<TenantMembership | null>;
   revokeSession(sessionId: string, revokedAt: string): Promise<void>;
+  /** Advance idle-timeout activity only for a live, unexpired session. */
+  touchSession(sessionId: string, seenAt: string): Promise<boolean>;
 }
 
 export interface VerifiedTenantContext {
@@ -71,10 +73,7 @@ export function resourceBelongsToTenant(
   return context !== null && context.tenantId === resource.tenantId;
 }
 
-/**
- * F-02 is unresolved. A concrete policy must be approved and supplied by the
- * application before session authentication is enabled.
- */
+/** Explicitly selected session policy; absolute expiry is also enforced by the resolver. */
 export interface SessionPolicy {
   isExpired(session: SessionRecord, now: Date): boolean;
 }
