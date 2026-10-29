@@ -23,7 +23,7 @@ Status: Owner-directed MVP policy decisions recorded 2026-10-29. These are appli
 - If the verified email channel is unavailable, recovery fails closed. No support or platform-admin override exists in the MVP contract.
 
 ### Implementation status
-The policy is decided, but email-verification issuance/delivery, recovery-token persistence and atomic consumption, credential storage, and transactional revoke-all-sessions are **not implemented**. Do not expose registration, login, verification, or recovery routes until those flows are implemented and reviewed. Token hashes, rate limits, delivery failures, and session revocations must be auditable without logging raw tokens or credentials.
+Policy and source primitives now exist for scrypt credential hashing (`scrypt$v1$32768$8$1$...`, random 16-byte salt, 64-byte derived key, minimum 12 Unicode characters, maximum 1024 UTF-8 bytes), verification/recovery token issuance and consumption, PostgreSQL-backed rate limits, and an encrypted SMTP outbox. Recovery requests are capped at 5 per normalized email and 20 per source IP per hour; token redemption is capped at 5 attempts per token. Login attempts use an additional conservative source contract of 10 per normalized email and 30 per source IP per 15 minutes. Email delivery is asynchronous via the outbox worker. These source changes have not yet passed automated verification or database-backed integration tests. Do not expose registration, login, verification, or recovery routes until verification succeeds and the source review is closed. Token hashes, rate limits, delivery failures, and session revocations must be auditable without logging raw tokens or credentials.
 
 ## F-02 — Session lifetime and concurrency
 
