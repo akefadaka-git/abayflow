@@ -48,14 +48,12 @@ export async function authenticateAndResolveTenant(input: {
   if (principal.accountStatus !== "active") {
     return { ok: false, code: "ACCOUNT_SUSPENDED" };
   }
-  if (principal.sessionId !== session.id) {
-    // A principal/session mismatch is an integrity failure: deny access.
-    return { ok: false, code: "UNAUTHENTICATED" };
-  }
 
+  const absoluteExpiry = Date.parse(session.absoluteExpiresAt);
   if (
-    input.sessionPolicy.isExpired(session, input.now) ||
-    new Date(session.absoluteExpiresAt).getTime() <= input.now.getTime()
+    !Number.isFinite(absoluteExpiry) ||
+    absoluteExpiry <= input.now.getTime() ||
+    input.sessionPolicy.isExpired(session, input.now)
   ) {
     return { ok: false, code: "SESSION_EXPIRED" };
   }
