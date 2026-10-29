@@ -31,7 +31,7 @@ The policy is decided, but email-verification issuance/delivery, recovery-token 
 
 - Multiple concurrent sessions are allowed, so users can use multiple devices. Each session has an independent opaque bearer secret and revocation state.
 - Session secrets must be generated using a cryptographically secure random source with at least 256 bits of entropy. Persist only SHA-256 hashes of the bearer secrets; never log or return stored hashes.
-- Idle timeout is 30 minutes from the last successfully authenticated API request. A successful authenticated request advances `last_seen_at) monotonically; failed authentication does not refresh activity.
+- Idle timeout is 30 minutes from the last successfully authenticated API request. A successful authenticated request advances `last_seen_at` monotonically; failed authentication does not refresh activity.
 - Absolute expiry is fixed at session issuance to 12 hours after creation. Activity does not extend the absolute expiry.
 - Every request must reject revoked, idle-expired, absolute-expired, unknown, malformed, or account-ineligible sessions. Invalid timestamps fail closed.
 - A normal logout revokes that session. Password recovery, credential compromise response, or account suspension revokes all sessions for the account.
