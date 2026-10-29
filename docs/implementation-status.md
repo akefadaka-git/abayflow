@@ -28,14 +28,15 @@ Updated: 2026-10-29
 
 - [ ] PostgreSQL connection pool and application composition root for normal API traffic.
 - [ ] Migration runner execution against a real database; no target database was supplied for this source-only pass.
-- [ ] HTTP middleware wiring the authorization boundary into every business route; the API still exposes no business routes.
-- [ ] Approved session idle/absolute lifetime policy (F-02 remains open); the adapter stores timestamps but does not decide policy.
-- [ ] Account verification/recovery contract and implementation (F-01 remains open).
+- [ ] Per-route action permission checks and resource-tenant scoping; no business routes are registered.
+- [x] F-01 account verification/recovery policy selected and documented: verified email only, single-use hashed tokens, 24-hour verification token, 30-minute recovery token, generic responses, rate limits, and revoke-all-sessions on successful recovery.
+- [x] F-02 session policy selected and documented: 30-minute idle timeout, 12-hour absolute lifetime, concurrent sessions allowed, opaque 256-bit-minimum bearer secrets, and session activity tracking.
+- [x] Reserved `/api` request namespace wired to fail-closed authentication and tenant resolution; no business routes are registered.
 - [ ] Membership-removal transaction, pending-task handling, and cross-session/API/download revocation integration (F-04 remains open).
 - [ ] Transactional membership lifecycle service and audited administrative operations.
 - [ ] Explicit per-action permission evaluation and resource-level authorization beyond tenant membership.
 - [ ] Tenant-scoped data access patterns and further concurrency controls for domain tables.
-- [ ] Session issuance/rotation service; opaque token generation and persistence lifecycle.
+- [ ] Login/session issuance and logout/revoke-all-sessions service; recovery and verification token lifecycle and credential handling.
 - [ ] Document upload, quarantine, malware scanning, versioning, and private downloads.
 - [ ] Workflow definition validation, publication, immutable versions, and execution state machine.
 - [ ] Persistent job queue, leases, retry policy, and worker fencing.
@@ -55,9 +56,9 @@ Run `npm run db:migrate` only from the repository root after dependencies are in
 - No tests, build, typecheck, dependency installation, database connection, or migration execution have been run for this pass.
 - The PostgreSQL driver is declared in `package.json`, but dependencies have not been installed and the driver has not been exercised.
 - The migration runner is source-only and has not been run against a database.
-- The API does not yet create a database pool or wire the adapter into request handling.
-- The authorization primitive requires the adapter and a concrete session policy, and it is not yet wired into HTTP request handling.
-- The adapter does not issue sessions or implement account recovery or membership removal.
+- The API creates a lazy PostgreSQL pool when `DATABASE_URL` is configured and wires the identity adapter into the reserved `/api` request boundary. The pool and middleware have not been exercised against a database.
+- F-01/F-02 policy decisions are documented; their complete verification/recovery/login/logout workflows remain unimplemented.
+- The adapter does not issue sessions, implement account recovery, or implement membership removal.
 - Tenant membership is not equivalent to permission to perform every action. Routes must authorize the action and tenant-scope resource queries before accessing data.
 - Baseline response headers are not a substitute for deployment-level TLS, proxy, or browser security configuration.
 - Amharic-first is a confirmed product direction, not a claim that the current scaffold is already translated.
