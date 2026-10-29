@@ -55,6 +55,7 @@ export class PostgreSqlRateLimiter {
       }
 
       let retryAfterSeconds = 0;
+      const counts = new Map<string, number>();
       for (const rule of prepared) {
         const windowStart = new Date(instant.getTime() - rule.windowMs).toISOString();
         const count = await client.query(
@@ -64,6 +65,7 @@ export class PostgreSqlRateLimiter {
           [rule.dimension, rule.hash, windowStart]
         );
         const current = Number(count.rows[0]?.count ?? 0);
+        counts.set(rule.dimension + ":" + rule.hash, current);
         if (current >= rule.limit) {
           const oldest = count.rows[0]?.oldest;
           const oldestMs = oldest instanceof Date ? oldest.getTime() : Date.parse(String(oldest));
@@ -72,16 +74,15 @@ export class PostgreSqlRateLimiter {
         }
       }
 
-      if (retryAfterSeconds > 0) {
-        await client.query("COMMIT");
-        return { allowed: false, retryAfterSeconds };
-      }
-
+      // Consume each still-available dimension even if another dimension is
+      // exhausted, so rotating email addresses cannot bypass the source-IP cap.
       for (const rule of prepared) {
-        await client.query(
-          "INSERT INTO auth_rate_limit_events (id, dimension, subject_hash, occurred_at) VALUES (gen_random_uuid(), $1, $2, $3)",
-          [rule.dimension, rule.hash, now]
-        );
+        if ((counts.get(rule.dimension + ":" + rule.hash) ?? rule.limit) < rule.limit) {
+          await client.query(
+            "INSERT INTO auth_rate_limit_events (id, dimension, subject_hash, occurred_at) VALUES (gen_random_uuid(), $1, $2, $3)",
+            [rule.dimension, rule.hash, now]
+          );
+        }
       }
       await client.query("COMMIT");
       return { allowed: true, retryAfterSeconds: 0 };
