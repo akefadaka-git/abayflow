@@ -10,7 +10,7 @@ if (!databaseUrl) {
 
 const migrationsDirectory = resolve(process.cwd(), "database/migrations");
 const migrationNamePattern = /^\d{3,}_[a-z0-9_-]+\.sql$/;
-const lockKey = "617961666c6f77"; // Stable advisory-lock key for AbayFlow migrations.
+const lockKey = 617961666; // Stable numeric advisory-lock key for AbayFlow migrations.
 
 const client = new Client({
   connectionString: databaseUrl,
