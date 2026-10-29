@@ -39,7 +39,7 @@ Policy and source primitives now exist for scrypt credential hashing (`scrypt$v1
 - No “remember me” extension, refresh-token extension, session lifetime exception, or platform-admin bypass is enabled in the MVP.
 
 ### Implementation status
-The resolver enforces the persisted absolute expiry and the selected idle-timeout policy. The API's reserved `/api` namespace is wired through the identity boundary, and a successful authorization records session activity. Session issuance, credential verification, login/logout endpoints, revoke-all-sessions, high-risk reauthentication, and automated verification are **not implemented**. No business routes are exposed.
+The resolver enforces the persisted absolute expiry and the selected idle-timeout policy. Source-level credential verification, login/session issuance, and revoke-all-sessions primitives now exist. Login/logout HTTP handlers, per-session logout integration, high-risk reauthentication, and automated verification remain incomplete. No business routes are exposed.
 
 ## Authenticated request boundary
 
@@ -53,4 +53,4 @@ The resolver enforces the persisted absolute expiry and the selected idle-timeou
 
 ## Remaining Owner/security gates
 
-These decisions close F-01 and F-02 policy selection, not their full implementation. F-04 membership revocation, permission/action matrix, database TLS/secret delivery, audit persistence, rate-limit storage and distributed enforcement, credential algorithm, and high-impact action list remain separate contracts. They must be resolved before relevant production capabilities are exposed.
+These decisions close F-01 and F-02 policy selection, not their full implementation. F-04 membership revocation, permission/action matrix, database TLS/secret delivery, audit persistence/integrity, operational rate-limit cleanup, SMTP delivery monitoring, and high-impact action list remain open. They must be resolved before relevant production capabilities are exposed.
