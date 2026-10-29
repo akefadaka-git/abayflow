@@ -9,12 +9,15 @@ Updated: 2026-10-29
 - [x] Minimal API process with liveness endpoint.
 - [x] Readiness endpoint fails closed until dependencies are configured.
 - [x] Unknown routes return a stable JSON 404 response.
+- [x] Server-generated request correlation IDs in response headers and JSON envelopes.
+- [x] Baseline response headers: no-store, nosniff, frame denial, restrictive CSP, referrer policy, and permissions policy.
+- [x] Shared API error-envelope and tenant-context contract types.
 - [x] Architecture and security-gate documentation.
 
 ## Not implemented
 
 - [ ] Authentication/session lifecycle and account recovery.
-- [ ] Tenant and membership authorization.
+- [ ] Tenant and membership authorization middleware.
 - [ ] Document upload, quarantine, malware scanning, versioning, and private downloads.
 - [ ] Workflow definition validation, publication, and immutable versions.
 - [ ] Execution state machine, task assignment, and decision transactions.
@@ -27,6 +30,10 @@ Updated: 2026-10-29
 - [ ] Dependency/license audit and final license file.
 - [ ] CI workflows and automated verification.
 
-## Evidence
+## Evidence and limitations
 
-No tests, build, dependency installation, or deployment have been run as part of this repository pass. The code is an initial scaffold, not a complete or production-ready MVP.
+- Repository changes are being committed to `feat/document-approval-mvp`; no merge or deployment is authorized.
+- No tests, build, dependency installation, or deployment have been run for this pass.
+- The contract types are definitions only; they do not implement authentication or enforce tenant isolation.
+- Baseline response headers are not a substitute for deployment-level TLS, proxy, or browser security configuration.
+- This remains an initial scaffold, not a complete or production-ready MVP.
