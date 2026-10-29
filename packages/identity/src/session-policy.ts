@@ -15,6 +15,8 @@ export const mvpSessionPolicy: SessionPolicy = {
   isExpired(session: SessionRecord, now: Date): boolean {
     const lastSeen = Date.parse(session.lastSeenAt);
     if (!Number.isFinite(lastSeen)) return true;
-    return now.getTime() - lastSeen >= SESSION_IDLE_TIMEOUT_MS;
+    const currentTime = now.getTime();
+    if (lastSeen > currentTime + 60_000) return true;
+    return currentTime - lastSeen >= SESSION_IDLE_TIMEOUT_MS;
   }
 };
