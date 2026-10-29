@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 
 const scrypt = promisify(scryptCallback);
 const FORMAT = "scrypt";
+const VERSION = "v1";
 const COST = 32_768;
 const BLOCK_SIZE = 8;
 const PARALLELIZATION = 1;
@@ -32,24 +33,24 @@ export async function hashCredential(credential: string): Promise<string> {
   const derived = await scrypt(credential, salt, KEY_LENGTH, {
     N: COST, r: BLOCK_SIZE, p: PARALLELIZATION, maxmem: MAX_MEMORY
   }) as Buffer;
-  return [FORMAT, COST, BLOCK_SIZE, PARALLELIZATION, salt.toString("base64url"), derived.toString("base64url")].join("$");
+  return [FORMAT, VERSION, COST, BLOCK_SIZE, PARALLELIZATION, salt.toString("base64url"), derived.toString("base64url")].join("$");
 }
 
 export async function verifyCredential(credential: string, encoded: string): Promise<boolean> {
   if (typeof credential !== "string" || Buffer.byteLength(credential, "utf8") > MAX_CREDENTIAL_BYTES) return false;
   const parts = encoded.split("$");
-  if (parts.length !== 6 || parts[0] !== FORMAT) throw new CredentialFormatError("unsupported");
-  const n = Number(parts[1]), r = Number(parts[2]), p = Number(parts[3]);
+  if (parts.length !== 7 || parts[0] !== FORMAT || parts[1] !== VERSION) throw new CredentialFormatError("unsupported");
+  const n = Number(parts[2]), r = Number(parts[3]), p = Number(parts[4]);
   if (n !== COST || r !== BLOCK_SIZE || p !== PARALLELIZATION) throw new CredentialFormatError("unsupported");
   let salt: Buffer, expected: Buffer;
   try {
-    salt = Buffer.from(parts[4] ?? "", "base64url");
-    expected = Buffer.from(parts[5] ?? "", "base64url");
+    salt = Buffer.from(parts[5] ?? "", "base64url");
+    expected = Buffer.from(parts[6] ?? "", "base64url");
   } catch {
     throw new CredentialFormatError("malformed");
   }
   if (salt.length !== SALT_LENGTH || expected.length !== KEY_LENGTH ||
-      salt.toString("base64url") !== parts[4] || expected.toString("base64url") !== parts[5]) {
+      salt.toString("base64url") !== parts[5] || expected.toString("base64url") !== parts[6]) {
     throw new CredentialFormatError("malformed");
   }
   const actual = await scrypt(credential, salt, KEY_LENGTH, {
@@ -59,8 +60,8 @@ export async function verifyCredential(credential: string, encoded: string): Pro
 }
 
 function validateCredential(credential: string): void {
-  if (typeof credential !== "string" || credential.length === 0 ||
+  if (typeof credential !== "string" || Array.from(credential).length < 12 ||
       Buffer.byteLength(credential, "utf8") > MAX_CREDENTIAL_BYTES) {
-    throw new Error("Credential must contain 1 to 1024 UTF-8 bytes");
+    throw new Error("Credential must contain at least 12 characters and at most 1024 UTF-8 bytes");
   }
 }
