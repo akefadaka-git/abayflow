@@ -344,6 +344,12 @@ export class PostgreSqlIdentityLifecycle {
         [token.id, now]
       );
       if (consumed.rows.length !== 1) throw new Error("Verification token was not atomically consumable");
+      await client.query(
+        `INSERT INTO identity_audit_events
+          (id, subject_account_id, event_type, occurred_at, reason, metadata)
+         VALUES ($1, $2, 'email_verified', $3, 'email_verification', '{}'::jsonb)`,
+        [randomUUID(), token.account_id, now]
+      );
       await client.query("COMMIT");
       return true;
     } catch (error) {
