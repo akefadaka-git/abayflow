@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "db:migrate": "node scripts/migrate.mjs",
     "test": "npm run build && node --test tests/*.test.mjs",
-    "email:drain": "npm run build && node dist/scripts/drain-email-outbox.js"
+    "email:drain": "npm run build && node dist/scripts/drain-email-outbox.js",
+    "auth:rate-limit-cleanup": "node scripts/cleanup-auth-rate-limits.mjs"
   },
   "dependencies": {
     "pg": "^8.16.3",
