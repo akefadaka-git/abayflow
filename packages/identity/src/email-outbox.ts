@@ -16,14 +16,14 @@ function encryptionKey(): Buffer {
   return Buffer.from(value, "hex");
 }
 
-function encryptPayload(payload: MailPayload): string {
+export function encryptMailPayload(payload: MailPayload): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
   const ciphertext = Buffer.concat([cipher.update(JSON.stringify(payload), "utf8"), cipher.final()]);
   return [iv.toString("base64url"), cipher.getAuthTag().toString("base64url"), ciphertext.toString("base64url")].join(".");
 }
 
-function decryptPayload(value: string): MailPayload {
+function decryptMailPayload(value: string): MailPayload {
   const parts = value.split(".");
   if (parts.length !== 3) throw new Error("Malformed encrypted mail payload");
   const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(parts[0]!, "base64url"));
@@ -50,7 +50,7 @@ export class PostgreSqlEmailOutbox {
     await client.query(
       `INSERT INTO email_outbox (id, payload_ciphertext, status, attempts, available_at, created_at)
        VALUES (gen_random_uuid(), $1, 'pending', 0, $2, $2)`,
-      [encryptPayload(payload), this.now().toISOString()]
+      [encryptMailPayload(payload), this.now().toISOString()]
     );
   }
 
@@ -89,7 +89,7 @@ export class PostgreSqlEmailOutbox {
 
       for (const row of claimed.rows) {
         try {
-          const payload = decryptPayload(String(row.payload_ciphertext));
+          const payload = decryptMailPayload(String(row.payload_ciphertext));
           await transporter.sendMail({ from, to: payload.to, subject: payload.subject, text: payload.text });
           await this.pool.query(
             "UPDATE email_outbox SET status = 'sent', sent_at = $2, locked_at = NULL, last_error_code = NULL WHERE id = $1",
