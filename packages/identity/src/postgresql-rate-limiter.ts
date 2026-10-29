@@ -85,7 +85,7 @@ export class PostgreSqlRateLimiter {
         }
       }
       await client.query("COMMIT");
-      return { allowed: true, retryAfterSeconds: 0 };
+      return { allowed: retryAfterSeconds === 0, retryAfterSeconds };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       throw error;
