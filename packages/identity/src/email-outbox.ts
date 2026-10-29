@@ -71,10 +71,18 @@ export class PostgreSqlEmailOutbox {
     let sent = 0, failed = 0;
     try {
       await client.query("BEGIN");
+      await client.query(
+        `UPDATE email_outbox SET status = 'dead', locked_at = NULL, last_error_code = 'LeaseExpired'
+          WHERE status = 'sending' AND attempts >= 5
+            AND locked_at < $1::timestamptz - interval '5 minutes'`,
+        [this.now().toISOString()]
+      );
       const claimed = await client.query(
         `WITH candidates AS (
            SELECT id FROM email_outbox
-            WHERE status IN ('pending', 'retry') AND available_at <= $1
+            WHERE attempts < 5
+              AND (status IN ('pending', 'retry') OR (status = 'sending' AND locked_at < $1::timestamptz - interval '5 minutes'))
+              AND available_at <= $1
             ORDER BY created_at
             FOR UPDATE SKIP LOCKED
             LIMIT $2
