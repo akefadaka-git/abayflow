@@ -130,6 +130,25 @@ export class PostgreSqlIdentityRepository implements IdentityRepository {
     };
   }
 
+  async touchSession(sessionId: string, seenAt: string): Promise<boolean> {
+    const timestamp = new Date(seenAt);
+    if (!Number.isFinite(timestamp.getTime())) {
+      throw new Error("seenAt must be a valid timestamp");
+    }
+
+    const result = await this.database.query(
+      `UPDATE sessions
+          SET last_seen_at = $2
+        WHERE id = $1
+          AND revoked_at IS NULL
+          AND absolute_expires_at > $2
+          AND last_seen_at <= $2
+        RETURNING id`,
+      [sessionId, timestamp.toISOString()]
+    );
+    return result.rows.length === 1;
+  }
+
   async revokeSession(sessionId: string, revokedAt: string): Promise<void> {
     const timestamp = new Date(revokedAt);
     if (!Number.isFinite(timestamp.getTime())) {
