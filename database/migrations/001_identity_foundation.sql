@@ -1,8 +1,7 @@
 -- AbayFlow identity foundation (PostgreSQL).
--- Apply through a reviewed migration runner; this file is not auto-executed by the API.
+-- Apply only through the reviewed migration runner; the API never auto-runs migrations.
 -- IDs are application-generated UUIDs. Recovery and session-lifetime policy remain separate decisions.
-
-BEGIN;
+-- Transaction boundaries are owned by the migration runner so schema changes and ledger entries commit atomically.
 
 CREATE TABLE accounts (
   id uuid PRIMARY KEY,
@@ -44,7 +43,7 @@ CREATE TABLE sessions (
   id uuid PRIMARY KEY,
   account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
   token_hash text NOT NULL UNIQUE
-    CHECK (length(token_hash) = 64 AND token_hash ~ '^[0-9a-f]{64}
+    CHECK (length(token_hash) = 64 AND token_hash ~ '^[0-9a-f]{64}$'),
   created_at timestamptz NOT NULL DEFAULT now(),
   last_seen_at timestamptz NOT NULL DEFAULT now(),
   absolute_expires_at timestamptz NOT NULL,
@@ -63,26 +62,3 @@ CREATE INDEX sessions_active_account_idx
 CREATE INDEX tenant_memberships_active_lookup_idx
   ON tenant_memberships (account_id, tenant_id)
   WHERE status = 'active';
-
-COMMIT;
-),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  last_seen_at timestamptz NOT NULL DEFAULT now(),
-  absolute_expires_at timestamptz NOT NULL,
-  revoked_at timestamptz NULL,
-  CONSTRAINT sessions_expiry_after_creation CHECK (absolute_expires_at > created_at),
-  CONSTRAINT sessions_last_seen_after_creation CHECK (last_seen_at >= created_at),
-  CONSTRAINT sessions_revocation_after_creation CHECK (
-    revoked_at IS NULL OR revoked_at >= created_at
-  )
-);
-
-CREATE INDEX sessions_active_account_idx
-  ON sessions (account_id, absolute_expires_at)
-  WHERE revoked_at IS NULL;
-
-CREATE INDEX tenant_memberships_active_lookup_idx
-  ON tenant_memberships (account_id, tenant_id)
-  WHERE status = 'active';
-
-COMMIT;
