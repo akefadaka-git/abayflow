@@ -102,18 +102,19 @@ export class PostgreSqlIdentityRepository implements IdentityRepository {
 
     return {
       userId: requiredString(row, "userId"),
-      accountStatus: status as AccountStatus,
+      accountStatus: status as AccountStatus
     };
   }
 
   async findActiveMembership(userId: string, tenantId: string): Promise<TenantMembership | null> {
     const result = await this.database.query(
-      `SELECT id AS "membershipId", account_id AS "userId", tenant_id AS "tenantId",
-              status, roles
-         FROM tenant_memberships
-        WHERE account_id = $1
-          AND tenant_id = $2
-          AND status = 'active'
+      `SELECT m.id AS "membershipId", m.account_id AS "userId", m.tenant_id AS "tenantId",
+              m.status, m.roles
+         FROM tenant_memberships AS m
+         INNER JOIN tenants AS t ON t.id = m.tenant_id AND t.status = 'active'
+        WHERE m.account_id = $1
+          AND m.tenant_id = $2
+          AND m.status = 'active'
         LIMIT 1`,
       [userId, tenantId]
     );
