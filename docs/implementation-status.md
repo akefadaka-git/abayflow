@@ -26,7 +26,7 @@ Updated: 2026-10-29
 
 ## Not implemented or not yet integrated
 
-- [ ] PostgreSQL connection pool and application composition root for normal API traffic.
+- [x] Lazy PostgreSQL connection pool and identity application composition for the reserved `/api` authentication boundary; database connectivity and schema readiness are not yet verified.
 - [ ] Migration runner execution against a real database; no target database was supplied for this source-only pass.
 - [ ] Per-route action permission checks and resource-tenant scoping; no business routes are registered.
 - [x] F-01 account verification/recovery policy selected and documented: verified email only, single-use hashed tokens, 24-hour verification token, 30-minute recovery token, generic responses, rate limits, and revoke-all-sessions on successful recovery.
