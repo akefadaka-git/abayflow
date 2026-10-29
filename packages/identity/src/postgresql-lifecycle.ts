@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { PostgreSqlQueryable } from "./postgresql-repository.js";
+import { encryptMailPayload } from "./email-outbox.js";
 
 export interface PostgreSqlClient extends PostgreSqlQueryable {
   release(): void;
@@ -263,6 +264,7 @@ export class PostgreSqlIdentityLifecycle {
     accountId: string;
     purpose: "email_verification" | "password_recovery";
     tokenHash: string;
+    email?: { readonly to: string; readonly subject: string; readonly text: string };
   }): Promise<boolean> {
     if (!validHash(input.tokenHash)) throw new Error("Account token hash must be lowercase SHA-256 hex");
     const client = await this.pool.connect();
@@ -295,6 +297,14 @@ export class PostgreSqlIdentityLifecycle {
          VALUES ($1, $2, $3, $4, $5, $6)`,
         [input.tokenId, input.accountId, input.purpose, input.tokenHash, createdAt, expiresAt]
       );
+      if (input.email) {
+        const payload = encryptMailPayload(input.email);
+        await client.query(
+          `INSERT INTO email_outbox (id, payload_ciphertext, status, attempts, available_at, created_at)
+           VALUES ($1, $2, 'pending', 0, $3, $3)`,
+          [randomUUID(), payload, createdAt]
+        );
+      }
       await client.query("COMMIT");
       return true;
     } catch (error) {
