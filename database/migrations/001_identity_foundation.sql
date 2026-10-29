@@ -4,7 +4,7 @@
 
 BEGIN;
 
-CREATE TABLE IF NOT EXISTS accounts (
+CREATE TABLE accounts (
   id uuid PRIMARY KEY,
   status text NOT NULL DEFAULT 'active'
     CHECK (status IN ('active', 'suspended', 'recovery_pending')),
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS tenants (
+CREATE TABLE tenants (
   id uuid PRIMARY KEY,
   name text NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 200),
   slug text NOT NULL UNIQUE CHECK (slug ~ '^[a-z0-9]+([a-z0-9-]*[a-z0-9])?$'),
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS tenants (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS tenant_memberships (
+CREATE TABLE tenant_memberships (
   id uuid PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
   account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
@@ -40,11 +40,11 @@ CREATE TABLE IF NOT EXISTS tenant_memberships (
   )
 );
 
-CREATE TABLE IF NOT EXISTS sessions (
+CREATE TABLE sessions (
   id uuid PRIMARY KEY,
   account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
-  token_hash char(64) NOT NULL UNIQUE
-    CHECK (token_hash ~ '^[0-9a-f]{64}$'),
+  token_hash text NOT NULL UNIQUE
+    CHECK (length(token_hash) = 64 AND token_hash ~ '^[0-9a-f]{64}
   created_at timestamptz NOT NULL DEFAULT now(),
   last_seen_at timestamptz NOT NULL DEFAULT now(),
   absolute_expires_at timestamptz NOT NULL,
@@ -56,11 +56,32 @@ CREATE TABLE IF NOT EXISTS sessions (
   )
 );
 
-CREATE INDEX IF NOT EXISTS sessions_active_account_idx
+CREATE INDEX sessions_active_account_idx
   ON sessions (account_id, absolute_expires_at)
   WHERE revoked_at IS NULL;
 
-CREATE INDEX IF NOT EXISTS tenant_memberships_active_lookup_idx
+CREATE INDEX tenant_memberships_active_lookup_idx
+  ON tenant_memberships (account_id, tenant_id)
+  WHERE status = 'active';
+
+COMMIT;
+),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_seen_at timestamptz NOT NULL DEFAULT now(),
+  absolute_expires_at timestamptz NOT NULL,
+  revoked_at timestamptz NULL,
+  CONSTRAINT sessions_expiry_after_creation CHECK (absolute_expires_at > created_at),
+  CONSTRAINT sessions_last_seen_after_creation CHECK (last_seen_at >= created_at),
+  CONSTRAINT sessions_revocation_after_creation CHECK (
+    revoked_at IS NULL OR revoked_at >= created_at
+  )
+);
+
+CREATE INDEX sessions_active_account_idx
+  ON sessions (account_id, absolute_expires_at)
+  WHERE revoked_at IS NULL;
+
+CREATE INDEX tenant_memberships_active_lookup_idx
   ON tenant_memberships (account_id, tenant_id)
   WHERE status = 'active';
 
