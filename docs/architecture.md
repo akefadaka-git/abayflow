@@ -5,7 +5,7 @@ Status: implementation scaffold; not production-ready.
 ## Initial shape
 
 - TypeScript API process with a deliberately minimal HTTP surface.
-- PostgreSQL is the initial persistence candidate; the migration and adapter are source artifacts only until a driver, migration runner, configuration, and database are explicitly wired and verified.
+- PostgreSQL is the initial persistence candidate. Driver dependency and an explicit migration runner are now declared; normal API connection composition is still not wired.
 - Private object/file storage and a persistent worker are planned but not implemented.
 - Business routes must not be exposed before session authentication, tenant resolution, per-action authorization, and audit contracts are implemented and reviewed.
 - Shared contracts should remain explicit and transport/persistence adapters should be replaceable without changing domain policy semantics.
@@ -18,6 +18,8 @@ Status: implementation scaffold; not production-ready.
 - `PostgreSqlIdentityRepository` accepts an injected query interface; it does not create a pool, load credentials, run migrations, or start database connections.
 - Active membership lookup joins the tenant table and fails closed when either the membership or tenant is inactive.
 - Session token hashes are looked up with parameterized queries; raw bearer secrets are not persisted by this adapter.
+- `scripts/migrate.mjs` is an explicit operator-invoked migration runner. It requires `DATABASE_URL`, serializes runs with a PostgreSQL advisory lock, maintains a checksum ledger, rejects edits to applied migrations, and commits each migration with its ledger row in one transaction.
+- Migration execution is not part of API startup. Review the target database, credentials, and recovery arrangements before invoking `npm run db:migrate`.
 
 ## Identity and request authorization boundary
 
