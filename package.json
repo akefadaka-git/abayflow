@@ -11,7 +11,8 @@
     "start": "node dist/apps/api/src/server.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "db:migrate": "node scripts/migrate.mjs",
-    "test": "npm run build && node --test tests/*.test.mjs"
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "email:drain": "npm run build && node dist/scripts/drain-email-outbox.js"
   },
   "dependencies": {
     "pg": "^8.16.3",
