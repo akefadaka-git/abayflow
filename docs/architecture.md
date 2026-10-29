@@ -5,17 +5,26 @@ Status: implementation scaffold; not production-ready.
 ## Initial shape
 
 - TypeScript API process with a deliberately minimal HTTP surface.
-- PostgreSQL remains the initial database candidate, subject to compatibility review.
+- PostgreSQL is the initial persistence candidate; the migration and adapter are source artifacts only until a driver, migration runner, configuration, and database are explicitly wired and verified.
 - Private object/file storage and a persistent worker are planned but not implemented.
 - Business routes must not be exposed before session authentication, tenant resolution, per-action authorization, and audit contracts are implemented and reviewed.
 - Shared contracts should remain explicit and transport/persistence adapters should be replaceable without changing domain policy semantics.
+
+## Identity persistence
+
+- `database/migrations/001_identity_foundation.sql` defines accounts, tenants, sessions, and tenant memberships.
+- Database constraints enforce valid statuses, foreign keys, unique tenant slugs, one membership per account/tenant pair, hashed bearer-token shape/uniqueness, session expiry ordering, and membership revocation consistency.
+- The migration uses application-generated UUIDs and `ON DELETE RESTRICT` for identity references to avoid silently cascading away audit-relevant records.
+- `PostgreSqlIdentityRepository` accepts an injected query interface; it does not create a pool, load credentials, run migrations, or start database connections.
+- Active membership lookup joins the tenant table and fails closed when either the membership or tenant is inactive.
+- Session token hashes are looked up with parameterized queries; raw bearer secrets are not persisted by this adapter.
 
 ## Identity and request authorization boundary
 
 - The identity resolver validates the opaque bearer token against a stored token hash, checks account and session status, and verifies active membership for the requested tenant.
 - `authorizeTenantRequest` provides a fail-closed request-boundary primitive. It requires the caller to inject an authoritative repository and a concrete session policy; it has no permissive defaults.
 - Infrastructure failures produce an unavailable decision rather than granting access. The helper does not replace action-level permission checks or resource-level tenant scoping.
-- The primitive is not yet connected to the HTTP server. No business routes should be added until persistence, policy decisions, middleware wiring, and per-route authorization are reviewed.
+- The primitive is not yet connected to the HTTP server. No business routes should be added until persistence, approved policy decisions, middleware wiring, and per-route authorization are reviewed.
 - Account recovery (F-01), session lifetime (F-02), and membership removal (F-04) remain unresolved and must not be silently defaulted.
 
 ## Document approval MVP
