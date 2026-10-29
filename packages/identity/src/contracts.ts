@@ -1,9 +1,8 @@
 /**
  * Identity/session policy boundary for the AbayFlow MVP.
  *
- * These interfaces intentionally define contracts, not a session implementation.
- * No request may derive tenant identity from an untrusted header, query value,
- * URL, or client-supplied organization ID.
+ * These interfaces define contracts, not a persistence implementation. Tenant
+ * identity must never be trusted merely because it appears in a request.
  */
 
 export type AccountStatus = "active" | "suspended" | "recovery_pending";
@@ -13,7 +12,6 @@ export interface AuthenticatedPrincipal {
   readonly userId: string;
   readonly accountStatus: AccountStatus;
   readonly authenticatedAt: string;
-  readonly sessionId: string;
 }
 
 export interface TenantMembership {
@@ -48,10 +46,6 @@ export type IdentityResult<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly code: IdentityFailureCode };
 
-/**
- * Adapter contract. Implementations must use authoritative persistence and
- * must never fall back to a tenant ID supplied only by the caller.
- */
 export interface IdentityRepository {
   findSessionByTokenHash(tokenHash: string): Promise<SessionRecord | null>;
   findPrincipalById(userId: string): Promise<AuthenticatedPrincipal | null>;
@@ -59,10 +53,6 @@ export interface IdentityRepository {
   revokeSession(sessionId: string, revokedAt: string): Promise<void>;
 }
 
-/**
- * Authorization context must be created only after session validation and
- * membership lookup. Do not construct this from request parameters.
- */
 export interface VerifiedTenantContext {
   readonly actorId: string;
   readonly sessionId: string;
@@ -83,18 +73,13 @@ export function resourceBelongsToTenant(
 }
 
 /**
- * Session expiry policy is intentionally injected. F-02 remains unresolved,
- * so implementations must not invent idle/absolute lifetimes in this module.
+ * F-02 is unresolved. A concrete policy must be approved and supplied by the
+ * application before session authentication is enabled.
  */
 export interface SessionPolicy {
   isExpired(session: SessionRecord, now: Date): boolean;
 }
 
-/**
- * Membership removal must revoke tenant access immediately in the authoritative
- * store, including subsequent download/export/API authorization checks.
- * Existing historical actor attribution must remain intact.
- */
 export interface MembershipRevocationService {
   revokeMembership(input: {
     tenantId: string;
