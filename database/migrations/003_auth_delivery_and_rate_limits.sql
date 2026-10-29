@@ -18,5 +18,7 @@ CREATE TABLE email_outbox (
 CREATE INDEX email_outbox_pending_idx ON email_outbox (available_at, created_at)
   WHERE status IN ('pending', 'retry');
 
-CREATE INDEX auth_rate_limit_events_cleanup_idx ON auth_rate_limit_events (occurred_at);\n\n-- Remove old limiter events after the largest currently approved window (24h).
+CREATE INDEX auth_rate_limit_events_cleanup_idx ON auth_rate_limit_events (occurred_at);
+
+-- Remove old limiter events after the largest currently approved window (24h).
 -- Schedule this bounded cleanup query from operations; it is not run automatically.
