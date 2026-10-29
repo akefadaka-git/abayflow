@@ -81,7 +81,26 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
       return;
     }
     try {
-      await pool.query("SELECT 1");
+      const result = await pool.query(`
+        SELECT
+          to_regclass('public.schema_migrations') AS migration_ledger,
+          to_regclass('public.accounts') AS accounts,
+          to_regclass('public.tenants') AS tenants,
+          to_regclass('public.sessions') AS sessions,
+          to_regclass('public.tenant_memberships') AS tenant_memberships
+      `);
+      const schema = result.rows[0];
+      if (
+        !schema ||
+        !schema.migration_ledger ||
+        !schema.accounts ||
+        !schema.tenants ||
+        !schema.sessions ||
+        !schema.tenant_memberships
+      ) {
+        sendError(response, requestId, 503, "SERVICE_NOT_READY", "Required database schema is not available.");
+        return;
+      }
       sendJson(response, requestId, 200, { status: "ready", requestId });
     } catch {
       sendError(response, requestId, 503, "SERVICE_NOT_READY", "Required service dependencies are unavailable.");
