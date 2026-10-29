@@ -20,11 +20,14 @@ Updated: 2026-10-29
 - [x] Tenant-scope comparison guard for use by tenant-scoped data access.
 - [x] Amharic-first product direction documented, with English as a secondary language and localization requirements identified.
 - [x] Architecture and security-gate documentation.
+- [x] PostgreSQL driver declared as a runtime dependency.
+- [x] Explicit migration runner with PostgreSQL advisory locking, SHA-256 checksums, immutable applied-migration enforcement, and per-migration transactions that atomically commit schema changes with the migration ledger entry.
+- [x] Corrected the identity migration's token-hash CHECK expression and moved transaction ownership to the migration runner.
 
 ## Not implemented or not yet integrated
 
-- [ ] PostgreSQL driver installation, pool creation, configuration/secrets handling, connection lifecycle, and application composition root.
-- [ ] Migration runner, migration ledger, and controlled application of the identity migration to a real database.
+- [ ] PostgreSQL connection pool and application composition root for normal API traffic.
+- [ ] Migration runner execution against a real database; no target database was supplied for this source-only pass.
 - [ ] HTTP middleware wiring the authorization boundary into every business route; the API still exposes no business routes.
 - [ ] Approved session idle/absolute lifetime policy (F-02 remains open); the adapter stores timestamps but does not decide policy.
 - [ ] Account verification/recovery contract and implementation (F-01 remains open).
@@ -42,12 +45,17 @@ Updated: 2026-10-29
 - [ ] Complete Amharic translation catalog, translation-key integration, font/rendering and accessibility review, locale-aware dates/numbers/currency, and localization verification.
 - [ ] Dependency/license audit, final license file, CI workflows, and automated verification.
 
+## Migration runner contract
+
+Run `npm run db:migrate` only from the repository root after dependencies are installed and `DATABASE_URL` points to the intended PostgreSQL database. The command is explicit and is never invoked by API startup. It creates a `schema_migrations` ledger, serializes runners with a PostgreSQL advisory lock, verifies SHA-256 checksums for already-applied migrations, and wraps each new migration plus its ledger row in one transaction. If an applied migration's contents change, it stops and requires a new migration file. Review the target database and backup/recovery arrangements before running it.
+
 ## Evidence and limitations
 
 - Repository changes are on `feat/document-approval-mvp`; no merge or deployment is authorized.
 - No tests, build, typecheck, dependency installation, database connection, or migration execution have been run for this pass.
-- The adapter uses an injected structural PostgreSQL query interface; no PostgreSQL driver is installed or wired by this change.
-- The migration is source-only and has not been applied to a database.
+- The PostgreSQL driver is declared in `package.json`, but dependencies have not been installed and the driver has not been exercised.
+- The migration runner is source-only and has not been run against a database.
+- The API does not yet create a database pool or wire the adapter into request handling.
 - The authorization primitive requires the adapter and a concrete session policy, and it is not yet wired into HTTP request handling.
 - The adapter does not issue sessions or implement account recovery or membership removal.
 - Tenant membership is not equivalent to permission to perform every action. Routes must authorize the action and tenant-scope resource queries before accessing data.
