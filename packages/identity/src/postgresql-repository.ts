@@ -86,7 +86,7 @@ export class PostgreSqlIdentityRepository implements IdentityRepository {
 
   async findPrincipalById(userId: string): Promise<AuthenticatedPrincipal | null> {
     const result = await this.database.query(
-      `SELECT id AS "userId", status, created_at AS "authenticatedAt"
+      `SELECT id AS "userId", status
          FROM accounts
         WHERE id = $1
         LIMIT 1`,
@@ -103,9 +103,6 @@ export class PostgreSqlIdentityRepository implements IdentityRepository {
     return {
       userId: requiredString(row, "userId"),
       accountStatus: status as AccountStatus,
-      // This is the account creation timestamp for contract compatibility; it
-      // is not a claim that the user authenticated at that time.
-      authenticatedAt: dateString(row, "authenticatedAt")
     };
   }
 
