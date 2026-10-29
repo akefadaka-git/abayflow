@@ -18,7 +18,12 @@ Updated: 2026-10-29
 - [x] Injected PostgreSQL identity repository adapter for session lookup, account status lookup, active tenant membership lookup, session activity, and individual session revocation.
 - [x] Additive identity-lifecycle migration for normalized email, opaque credential-hash storage, hashed single-use verification/recovery tokens, rate-limit event storage, and identity audit events.
 - [x] Transactional lifecycle primitives for verification-token issuance/consumption, recovery-token issuance/consumption, fixed-lifetime session issuance, revoke-all-sessions, and audited membership revocation.
-- [x] Deny-by-default action-permission evaluator with injected role grants; no role grants are assumed by default.\n- [x] Versioned scrypt credential hashing and constant-time derived-key comparison.\n- [x] PostgreSQL-backed, cross-instance rate limiting using transaction-scoped advisory locks and hashed subjects.\n- [x] Encrypted transactional email outbox with SMTP delivery, bounded retries, and stale-lease recovery.\n- [x] Identity service source for generic verification/recovery responses, token redemption, and login/session issuance; no HTTP routes exposed.\n- [x] GitHub Actions source verification workflow for typecheck, build, and unit tests.
+- [x] Deny-by-default action-permission evaluator with injected role grants; no role grants are assumed by default.
+- [x] Versioned scrypt credential hashing and constant-time derived-key comparison.
+- [x] PostgreSQL-backed, cross-instance rate limiting using transaction-scoped advisory locks and hashed subjects.
+- [x] Encrypted transactional email outbox with SMTP delivery, bounded retries, and stale-lease recovery.
+- [x] Identity service source for generic verification/recovery responses, token redemption, and login/session issuance; no HTTP routes exposed.
+- [x] GitHub Actions source verification workflow for typecheck, build, and unit tests.
 - [x] Active membership lookup also requires the tenant itself to be active.
 - [x] Tenant-scope comparison guard for use by tenant-scoped data access.
 - [x] Amharic-first product direction documented, with English as a secondary language and localization requirements identified.
@@ -30,7 +35,8 @@ Updated: 2026-10-29
 ## Not implemented or not yet integrated
 
 - [x] Lazy PostgreSQL connection pool and identity application composition for the reserved `/api` authentication boundary; database connectivity and schema readiness are not yet verified.
-- [ ] Migration runner execution against a real database; no target database was supplied for this source-only pass.\n- [ ] Production SMTP and outbox encryption secrets must be configured in the deployment secret manager; email delivery has not been exercised.
+- [ ] Migration runner execution against a real database; no target database was supplied for this source-only pass.
+- [ ] Production SMTP and outbox encryption secrets must be configured in the deployment secret manager; email delivery has not been exercised.
 - [ ] Per-route action permission checks and resource-tenant scoping; no business routes are registered.
 - [x] F-01 account verification/recovery policy selected and documented: verified email only, single-use hashed tokens, 24-hour verification token, 30-minute recovery token, generic responses, rate limits, and revoke-all-sessions on successful recovery.
 - [x] F-02 session policy selected and documented: 30-minute idle timeout, 12-hour absolute lifetime, concurrent sessions allowed, opaque 256-bit-minimum bearer secrets, and session activity tracking.
@@ -45,9 +51,11 @@ Updated: 2026-10-29
 - [ ] Persistent job queue, leases, retry policy, and worker fencing.
 - [ ] Audit persistence and integrity verification; notification outbox and delivery.
 - [ ] Exports, retention, legal holds, deletion and backup reconciliation.
-- [x] Durable database-backed auth rate-limit enforcement primitives for recovery/verification/login, with hashed subjects.\n- [ ] Operational scheduling/monitoring for outbox draining, rate-limit cleanup, dead-letter review, and delivery telemetry.\n- [ ] OpenAPI contract, pagination, and operational telemetry.
+- [x] Durable database-backed auth rate-limit enforcement primitives for recovery/verification/login, with hashed subjects.
+- [ ] Operational scheduling/monitoring for outbox draining, rate-limit cleanup, dead-letter review, and delivery telemetry.
+- [ ] OpenAPI contract, pagination, and operational telemetry.
 - [ ] Complete Amharic translation catalog, translation-key integration, font/rendering and accessibility review, locale-aware dates/numbers/currency, and localization verification.
-- [ ] Dependency/license audit, final license file, CI workflows, and automated verification.
+- [x] Source-verification GitHub Actions workflow added; [ ] successful workflow evidence, dependency/license audit, and final license file.
 
 ## Migration runner contract
 
@@ -56,9 +64,10 @@ Run `npm run db:migrate` only from the repository root after dependencies are in
 ## Evidence and limitations
 
 - Repository changes are on `feat/document-approval-mvp`; no merge or deployment is authorized.
-- No tests, build, typecheck, dependency installation, database connection, or migration execution have been run for this pass.
+- No tests, build, typecheck, dependency installation, database connection, or migration execution have been run locally. GitHub Actions status must be checked separately; no passing run is claimed here.
 - PostgreSQL and SMTP transport dependencies are declared in `package.json`; dependency installation and runtime exercise are pending CI evidence.
-- The migration runner is source-only and has not been run against a database.\n- The email outbox encrypts payloads with AES-256-GCM using `ABAYFLOW_OUTBOX_ENCRYPTION_KEY`; the SMTP worker requires SMTP environment variables and must be run by an external scheduler. No secrets are committed.
+- The migration runner is source-only and has not been run against a database.
+- The email outbox encrypts payloads with AES-256-GCM using `ABAYFLOW_OUTBOX_ENCRYPTION_KEY`; the SMTP worker requires SMTP environment variables and must be run by an external scheduler. No secrets are committed.
 - The API creates a lazy PostgreSQL pool when `DATABASE_URL` is configured and wires the identity adapter into the reserved `/api` request boundary. The pool and middleware have not been exercised against a database.
 - F-01/F-02 have source-level credential hashing, token lifecycle, durable rate limiting, encrypted email outbox, and login/session service primitives. No HTTP routes are exposed; source correctness, SMTP delivery, database migrations, and integration behavior remain unverified.
 - The adapter remains read/resolution-focused; a separate lifecycle service now provides source-level transactional primitives, but none is exposed through HTTP routes.
