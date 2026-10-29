@@ -1,6 +1,6 @@
 -- AbayFlow identity foundation (PostgreSQL).
 -- Apply only through the reviewed migration runner; the API never auto-runs migrations.
--- IDs are application-generated UUIDs. Recovery and session-lifetime policy remain separate decisions.
+-- IDs are application-generated UUIDs. Lifecycle additions live in migration 002.
 -- Transaction boundaries are owned by the migration runner so schema changes and ledger entries commit atomically.
 
 CREATE TABLE accounts (
