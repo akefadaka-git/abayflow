@@ -139,8 +139,14 @@ export class IdentityAuthService {
     return this.lifecycle.consumeEmailVerificationToken(tokenHash);
   }
 
-  async login(emailInput: string, credential: string): Promise<{ readonly sessionToken: string; readonly sessionId: string } | null> {
+  async login(emailInput: string, credential: string, sourceIp: string): Promise<{ readonly sessionToken: string; readonly sessionId: string } | null> {
     const email = normalizeEmail(emailInput);
+    if (email.length < 3 || email.length > 254 || !email.includes("@") || !sourceIp) return null;
+    const limit = await this.limiter.consume([
+      { dimension: "account_email", subject: "login:" + email, limit: 10, windowMs: 15 * 60 * 1000 },
+      { dimension: "source_ip", subject: "login:" + sourceIp, limit: 30, windowMs: 15 * 60 * 1000 }
+    ]);
+    if (!limit.allowed) return null;
     const result = await this.pool.query(
       `SELECT id, credential_hash FROM accounts
         WHERE email_normalized = $1 AND status = 'active' AND email_verified_at IS NOT NULL`,
