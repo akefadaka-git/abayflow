@@ -11,7 +11,6 @@ export type MembershipStatus = "active" | "suspended" | "revoked";
 export interface AuthenticatedPrincipal {
   readonly userId: string;
   readonly accountStatus: AccountStatus;
-  readonly authenticatedAt: string;
 }
 
 export interface TenantMembership {
