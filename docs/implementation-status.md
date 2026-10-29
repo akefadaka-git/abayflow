@@ -36,7 +36,7 @@ Updated: 2026-10-29
 - [x] F-02 session policy selected and documented: 30-minute idle timeout, 12-hour absolute lifetime, concurrent sessions allowed, opaque 256-bit-minimum bearer secrets, and session activity tracking.
 - [x] Reserved `/api` request namespace wired to fail-closed authentication and tenant resolution; no business routes are registered.
 - [ ] Membership-removal follow-up handling for pending tasks/files and domain-specific download revocation (F-04 remains partial; those domain tables do not exist yet).
-- [ ] Transactional membership lifecycle service and audited administrative operations.
+- [x] Transactional membership revocation primitive with an audit event; [ ] authorized administrative route, pending-task/file handling, and domain-specific revocation integration.
 - [x] Reusable deny-by-default per-action permission evaluation contract; [ ] approved role-to-permission matrix and integration into each route/resource repository.
 - [ ] Tenant-scoped data access patterns and further concurrency controls for domain tables.
 - [x] Low-level transactional session issuance and revoke-all-sessions primitives; [x] verification/recovery token persistence and atomic consumption primitives; [ ] credential hashing/verification policy, login/logout handlers, email delivery/outbox, durable distributed rate-limit enforcement, and route integration.
