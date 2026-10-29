@@ -257,4 +257,101 @@ export class PostgreSqlIdentityLifecycle {
       client.release();
     }
   }
+
+  async issueAccountToken(input: {
+    tokenId: string;
+    accountId: string;
+    purpose: "email_verification" | "password_recovery";
+    tokenHash: string;
+  }): Promise<boolean> {
+    if (!validHash(input.tokenHash)) throw new Error("Account token hash must be lowercase SHA-256 hex");
+    const client = await this.pool.connect();
+    const now = this.clock.now();
+    const createdAt = now.toISOString();
+    const lifetimeMs = input.purpose === "email_verification" ? 24 * 60 * 60 * 1000 : 30 * 60 * 1000;
+    const expiresAt = new Date(now.getTime() + lifetimeMs).toISOString();
+
+    try {
+      await client.query("BEGIN");
+      const account = await client.query(
+        input.purpose === "email_verification"
+          ? `SELECT id FROM accounts WHERE id = $1 AND status = 'active' AND email_normalized IS NOT NULL AND email_verified_at IS NULL FOR UPDATE`
+          : `SELECT id FROM accounts WHERE id = $1 AND status = 'active' AND email_normalized IS NOT NULL AND email_verified_at IS NOT NULL FOR UPDATE`,
+        [input.accountId]
+      );
+      if (account.rows.length !== 1) {
+        await client.query("ROLLBACK");
+        return false;
+      }
+      await client.query(
+        `UPDATE account_tokens SET invalidated_at = $3
+          WHERE account_id = $1 AND purpose = $2
+            AND consumed_at IS NULL AND invalidated_at IS NULL`,
+        [input.accountId, input.purpose, createdAt]
+      );
+      await client.query(
+        `INSERT INTO account_tokens
+          (id, account_id, purpose, token_hash, created_at, expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [input.tokenId, input.accountId, input.purpose, input.tokenHash, createdAt, expiresAt]
+      );
+      await client.query("COMMIT");
+      return true;
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async consumeEmailVerificationToken(tokenHash: string): Promise<boolean> {
+    if (!validHash(tokenHash)) return false;
+    const client = await this.pool.connect();
+    const now = this.clock.now().toISOString();
+
+    try {
+      await client.query("BEGIN");
+      const tokenResult = await client.query(
+        `SELECT id, account_id, expires_at, consumed_at, invalidated_at
+           FROM account_tokens
+          WHERE token_hash = $1 AND purpose = 'email_verification'
+          FOR UPDATE`,
+        [tokenHash]
+      );
+      const token = tokenResult.rows[0];
+      if (!token || token.consumed_at !== null || token.invalidated_at !== null ||
+          validTimestamp(String(token.expires_at)).getTime() <= Date.parse(now) ||
+          typeof token.id !== "string" || typeof token.account_id !== "string") {
+        await client.query("ROLLBACK");
+        return false;
+      }
+      const verified = await client.query(
+        `UPDATE accounts SET email_verified_at = $2, updated_at = $2
+          WHERE id = $1 AND status = 'active' AND email_normalized IS NOT NULL
+            AND email_verified_at IS NULL
+          RETURNING id`,
+        [token.account_id, now]
+      );
+      if (verified.rows.length !== 1) {
+        await client.query("ROLLBACK");
+        return false;
+      }
+      const consumed = await client.query(
+        `UPDATE account_tokens SET consumed_at = $2
+          WHERE id = $1 AND consumed_at IS NULL AND invalidated_at IS NULL
+          RETURNING id`,
+        [token.id, now]
+      );
+      if (consumed.rows.length !== 1) throw new Error("Verification token was not atomically consumable");
+      await client.query("COMMIT");
+      return true;
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
 }
